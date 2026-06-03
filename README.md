@@ -130,10 +130,5 @@ We welcome contributions! Please feel free to submit a Pull Request. For major c
 
 ---
 
-## 📄 License
-
-Distributed under the **ISC License**. See `LICENSE` for more information.
-
----
 
 <p align="center">Made with ❤️ for productive teams</p>
