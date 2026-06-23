@@ -8,6 +8,10 @@ import { ProjectRoutes } from "../modules/project/project.routes";
 import { ProjectMemberRoutes } from "../modules/project-member/projectMember.routes";
 import { NotificationRoutes } from "../modules/notification/notification.routes";
 import { DashboardRoutes } from "../modules/dashboard/dashboard.routes";
+import workspaceRoutes from "../modules/workspace/workspace.routes";
+import departmentRoutes from "../modules/department/department.routes";
+import organizationRoutes from "../modules/organization/organization.routes";
+import teamRoutes from "../modules/team/team.routes";
 
 const router = Router();
 
@@ -33,6 +37,22 @@ const moduleRoutes = [
   {
     path: "/projects",
     route: ProjectMemberRoutes,
+  },
+  {
+    path: "/workspaces",
+    route: workspaceRoutes,
+  },
+  {
+    path: "/workspaces",
+    route: departmentRoutes,
+  },
+  {
+    path: "/workspaces",
+    route: teamRoutes,
+  },
+  {
+    path: "/organizations",
+    route: organizationRoutes,
   },
   {
     path: "/notifications",

@@ -62,6 +62,7 @@ const getProjectsFromDB = async (user: any) => {
       _count: {
         select: {
           tasks: true,
+          members: true,
         },
       },
     },
@@ -88,6 +89,25 @@ const getSingleProjectFromDB = async (projectId: string, user: any) => {
       },
 
       tasks: true,
+
+      members: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
+
+      _count: {
+        select: {
+          tasks: true,
+          members: true,
+        },
+      },
     },
   });
 

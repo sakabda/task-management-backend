@@ -38,13 +38,22 @@ const addMemberIntoProject = async (
     throw new Error("User already a member");
   }
 
-  return (prisma as any).projectMember.create({
-    data: {
-      projectId,
-      userId: payload.userId,
-      role: payload.role || "MEMBER",
-    },
-  });
+ return prisma.projectMember.create({
+   data: {
+     projectId,
+     userId: payload.userId,
+     role: payload.role || "MEMBER",
+   },
+   include: {
+     user: {
+       select: {
+         id: true,
+         name: true,
+         email: true,
+       },
+     },
+   },
+ });
 };
 
 const getProjectMembers = async (projectId: string) => {

@@ -6,6 +6,7 @@ import validateRequest from "../../middlewares/validate.middleware";
 import {
   loginValidationSchema,
   registerValidationSchema,
+  switchWorkspaceValidationSchema,
 } from "./auth.validation";
 
 const router = Router();
@@ -21,5 +22,19 @@ router.post(
   AuthControllers.loginUser,
 );
 router.get("/me", auth("USER", "ADMIN"), AuthControllers.getMe);
+
+// Re-issue the access token with a new active workspace.
+router.post(
+  "/switch-workspace",
+  auth("USER", "ADMIN"),
+  validateRequest(switchWorkspaceValidationSchema),
+  AuthControllers.switchWorkspace,
+);
+
+router.get(
+  "/users/:projectId",
+  auth("USER", "ADMIN"),
+  AuthControllers.allUsers,
+);
 
 export default router;

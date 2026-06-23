@@ -14,3 +14,9 @@ export const loginValidationSchema = z.object({
     password: z.string().min(6),
   }),
 });
+
+export const switchWorkspaceValidationSchema = z.object({
+  body: z.object({
+    workspaceId: z.string().min(1, "workspaceId is required"),
+  }),
+});

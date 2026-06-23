@@ -7,13 +7,64 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─────────────────────────────────────────────────────────────
+// PHASE 1 — Multi-tenant hierarchy
+//   Organization → Workspace → Department → Team → Project
+//
+// Tenancy: shared DB, row-level isolation. Tenant-scoped tables
+// carry a `workspaceId` column (see Project). RBAC lives on
+// WorkspaceMember.role (matrix). SUPER_ADMIN is a global flag
+// on User.role and bypasses all checks.
+// ─────────────────────────────────────────────────────────────
+
+enum Role {
+  ORG_ADMIN
+  PROJECT_MANAGER
+  TEAM_LEAD
+  DEVELOPER
+  QA
+  CLIENT
+  GUEST
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  REVOKED
+}
+
+// Forward-declared enums used by later phases — defined here so the
+// Project model can carry them now without a second migration.
+enum ProjectHealth {
+  ON_TRACK
+  AT_RISK
+  OFF_TRACK
+  ON_HOLD
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// ── Identity ──────────────────────────────────────────────────
+
 model User {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
   password  String
-  role      String   @default("USER")
+  role      String   @default("USER") // global role: "USER" | "ADMIN" | "SUPER_ADMIN"
+  avatarUrl String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Last-selected workspace (persisted across sessions).
+  activeWorkspaceId String?
 
   createdTasks  Task[] @relation("TaskCreator")
   assignedTasks Task[] @relation("TaskAssignee")
@@ -24,7 +75,170 @@ model User {
   createdProjects Project[]
   projectMembers  ProjectMember[]
   notifications Notification[]
+
+  // Tenant relations. TeamMember is reached via WorkspaceMember,
+  // not User directly (User → WorkspaceMember → TeamMember).
+  ownedOrganizations Organization[] @relation("OrganizationOwner")
+  workspaceMembers   WorkspaceMember[]
+  sentInvitations    Invitation[]    @relation("InvitationInviter")
+  receivedInvitations Invitation[]   @relation("InvitationInvitee")
 }
+
+// ── Tenant hierarchy ──────────────────────────────────────────
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logoUrl     String?
+
+  ownerId String
+  owner   User   @relation("OrganizationOwner", fields: [ownerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspaces   Workspace[]
+  invitations  Invitation[] @relation("OrganizationInvitations")
+
+  @@index([ownerId])
+}
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  iconUrl     String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  departments Department[]
+  teams      Team[]
+  members    WorkspaceMember[]
+  invitations Invitation[] @relation("WorkspaceInvitations")
+  projects   Project[]
+
+  @@index([organizationId])
+}
+
+model Department {
+  id   String @id @default(cuid())
+  name String
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teams Team[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+}
+
+model Team {
+  id   String @id @default(cuid())
+  name String
+  description String?
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // A team MAY belong to a department (matrix orgs); nullable so teams
+  // can be cross-departmental.
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members TeamMember[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@index([departmentId])
+}
+
+// ── Memberships (mirror the existing ProjectMember pattern) ───
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        Role     @default(DEVELOPER)
+  joinedAt    DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  teams TeamMember[]
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+}
+
+model TeamMember {
+  id                String @id @default(cuid())
+  teamId            String
+  workspaceMemberId String
+
+  team            Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  workspaceMember WorkspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([teamId, workspaceMemberId])
+  @@index([workspaceMemberId])
+}
+
+// ── Invitations ───────────────────────────────────────────────
+
+model Invitation {
+  id    String @id @default(cuid())
+  email String
+  token String @unique
+
+  status InvitationStatus @default(PENDING)
+  role   Role             @default(DEVELOPER)
+
+  inviterId String
+  inviter   User @relation("InvitationInviter", fields: [inviterId], references: [id])
+
+  // Invitee is set once the invitation is accepted and a user is
+  // resolved/created. Nullable until then.
+  inviteeId String?
+  invitee   User? @relation("InvitationInvitee", fields: [inviteeId], references: [id])
+
+  // Membership target — at least one must be set at creation.
+  organizationId String?
+  organization   Organization? @relation("OrganizationInvitations", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  workspaceId String?
+  workspace   Workspace? @relation("WorkspaceInvitations", fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  expiresAt  DateTime?
+  acceptedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([inviterId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Existing domain models (auth/task/project/comment/…)
+// — additive tenant columns are added in place.
+// ─────────────────────────────────────────────────────────────
 
 model Task {
   id String @id @default(cuid())
@@ -98,6 +312,24 @@ model Project {
   id          String  @id @default(cuid())
   name        String
   description String?
+
+  // Phase 2 advanced fields (defined now so the migration is one-shot;
+  // services default them and the UI fills them in Phase 2).
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Decimal? @db.Decimal(12, 2)
+  clientId    String?
+  status      String   @default("PLANNED") // PLANNED | ACTIVE | ON_HOLD | COMPLETED | ARCHIVED
+  progress    Int      @default(0) // 0–100
+  health      ProjectHealth @default(ON_TRACK)
+  riskLevel   RiskLevel     @default(MEDIUM)
+  priority    Priority      @default(MEDIUM)
+  isArchived  Boolean  @default(false)
+  isTemplate  Boolean  @default(false)
+
+  // Tenant scoping (additive, nullable for the backfill window).
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

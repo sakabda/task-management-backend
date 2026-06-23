@@ -523,6 +523,44 @@ const updateTaskStatusIntoDB = async (
   return result;
 };
 
+const updateTaskPriorityIntoDB = async (
+  taskId: string,
+  priority: "LOW" | "MEDIUM" | "HIGH",
+  userId: string,
+) => {
+  const task = await prisma.task.findUnique({
+    where: {
+      id: taskId,
+    },
+  });
+
+  if (!task) {
+    throw new AppError(404, "Task not found");
+  }
+
+  const result = await prisma.task.update({
+    where: {
+      id: taskId,
+    },
+    data: {
+      priority,
+    },
+  });
+
+  await ActivityLogServices.createActivityLog({
+    action: "TASK_PRIORITY_CHANGED",
+    entity: "TASK",
+    entityId: result.id,
+    userId,
+    details: {
+      previousPriority: task.priority,
+      newPriority: priority,
+    },
+  });
+
+  return result;
+};
+
 export const TaskServices = {
   createTaskIntoDB,
   getTasksFromDB,
@@ -535,4 +573,5 @@ export const TaskServices = {
   getOverdueTasksFromDB,
   getUpcomingTasksFromDB,
   updateTaskStatusIntoDB,
+  updateTaskPriorityIntoDB,
 };

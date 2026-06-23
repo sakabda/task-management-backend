@@ -141,6 +141,21 @@ const updateTaskStatus = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateTaskPriority = catchAsync(async (req: Request, res: Response) => {
+  const result = await TaskServices.updateTaskPriorityIntoDB(
+    req.params.id as string,
+    req.body.priority,
+    req.user!.id,
+  );
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Task priority updated successfully",
+    data: result,
+  });
+});
+
 export const TaskControllers = {
   createTask,
   getTasks,
@@ -153,4 +168,5 @@ export const TaskControllers = {
   getOverdueTasks,
   getUpcomingTasks,
   updateTaskStatus,
+  updateTaskPriority,
 };

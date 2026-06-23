@@ -5,6 +5,7 @@ import { TaskControllers } from "./task.controller";
 import {
   assignTaskValidationSchema,
   createTaskValidationSchema,
+  updateTaskPriorityValidationSchema,
   updateTaskStatusValidationSchema,
   updateTaskValidationSchema,
 } from "./task.validation";
@@ -57,6 +58,12 @@ router.patch(
   auth("USER", "ADMIN"),
   validateRequest(updateTaskStatusValidationSchema),
   TaskControllers.updateTaskStatus,
+);
+router.patch(
+  "/:id/priority",
+  auth("USER", "ADMIN"),
+  validateRequest(updateTaskPriorityValidationSchema),
+  TaskControllers.updateTaskPriority,
 );
 
 router.delete("/:id", auth("USER", "ADMIN"), TaskControllers.deleteTask);

@@ -31,6 +31,13 @@ export const updateTaskStatusValidationSchema = z.object({
   }),
 });
 
+export const updateTaskPriorityValidationSchema = z.object({
+  body: z.object({
+    priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  }),
+});
+
+
 export const assignTaskValidationSchema = z.object({
   body: z.object({
     assignedToId: z.string({

@@ -28,7 +28,6 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getMe = catchAsync(async (req: Request, res: Response) => {
-  console.log(req?.user?.id);
   const result = await AuthServices.getMe(req.user!);
   sendResponse(res, {
     statusCode: 200,
@@ -37,8 +36,44 @@ const getMe = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+// Re-issue the access token against a different active workspace.
+// The client replaces its stored token with the returned one.
+const switchWorkspace = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthServices.switchWorkspace(
+    req.user!.id,
+    req.body.workspaceId,
+  );
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Active workspace updated",
+    data: result,
+  });
+});
+
+const allUsers = catchAsync(async (req: Request, res: Response) => {
+  const alreadyAssignedUsers = await AuthServices.getAlreadyAssignedUsers(
+    req.params.projectId as string,
+  );
+
+  const result = await AuthServices.getAllUsers(
+    req.user!,
+    alreadyAssignedUsers,
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "All users retrieved successfully",
+    data: result,
+  });
+});
+
 export const AuthControllers = {
   registerUser,
   loginUser,
   getMe,
+  switchWorkspace,
+  allUsers,
 };
