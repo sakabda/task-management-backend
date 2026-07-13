@@ -15,7 +15,15 @@ const getMembersFromDB = async (workspaceId: string, user: TJwtPayload) => {
   await resolveMembership(workspaceId, user.id);
 
   return prisma.workspaceMember.findMany({
-    where: { workspaceId },
+    where: {
+      workspaceId,
+      user: {
+        role: {
+          not: "ADMIN",
+        },
+      },
+    },
+
     include: {
       user: { select: { id: true, name: true, email: true, avatarUrl: true } },
       teams: { include: { team: { select: { id: true, name: true } } } },

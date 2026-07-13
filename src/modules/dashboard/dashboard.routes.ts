@@ -5,7 +5,7 @@ import { DashboardControllers } from "./dashboard.controller";
 const router = Router();
 
 router.get(
-  "/stats",
+  "/stats/:workspaceId",
   auth("USER", "ADMIN"),
   DashboardControllers.getDashboardStats,
 );

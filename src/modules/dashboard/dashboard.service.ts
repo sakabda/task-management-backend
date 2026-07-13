@@ -1,19 +1,57 @@
 import prisma from "../../prisma/prisma";
 
 const getDashboardStatsFromDB = async (user: any) => {
-  const taskFilter =
-    user.role === "ADMIN" ?
-      {}
-    : {
-        OR: [{ createdById: user.id }, { assignedToId: user.id }],
-      };
+  // const taskFilter =
+  //   user.role === "ADMIN" ?
+  //     {}
+  //   : {
+  //       OR: [{ createdById: user.id }, { assignedToId: user.id }],
+  //     };
+  const taskFilter = {
+    project: {
+      workspaceId: user.activeWorkspaceId,
+    },
 
-  const projectFilter =
-    user.role === "ADMIN" ?
+    ...(user.role === "ADMIN" ?
       {}
     : {
         OR: [
-          { createdById: user.id },
+          {
+            createdById: user.id,
+          },
+          {
+            assignedToId: user.id,
+          },
+        ],
+      }),
+  };
+
+  // const projectFilter =
+
+  //   user.role === "ADMIN" ?
+  //     {}
+  //   : {
+  //       OR: [
+  //         { createdById: user.id },
+  //         {
+  //           members: {
+  //             some: {
+  //               userId: user.id,
+  //             },
+  //           },
+  //         },
+  //       ],
+  //     };
+  const projectFilter = {
+    workspaceId: user.activeWorkspaceId,
+
+    ...(user.role === "ADMIN" ?
+      {}
+    : {
+        OR: [
+          {
+            createdById: user.id,
+          },
           {
             members: {
               some: {
@@ -22,7 +60,8 @@ const getDashboardStatsFromDB = async (user: any) => {
             },
           },
         ],
-      };
+      }),
+  };
 
   const [
     totalUsers,
@@ -41,7 +80,11 @@ const getDashboardStatsFromDB = async (user: any) => {
     recentNotifications,
     latestProjects,
   ] = await Promise.all([
-    prisma.user.count(),
+    prisma.workspaceMember.count({
+      where: {
+        workspaceId: user?.activeWorkspaceId,
+      },
+    }),
 
     prisma.project.count({
       where: projectFilter,
@@ -178,7 +221,7 @@ const getDashboardStatsFromDB = async (user: any) => {
 
     latestProjects,
   };
-};
+};;
 
 export const DashboardServices = {
   getDashboardStatsFromDB,
