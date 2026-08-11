@@ -27,6 +27,15 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const logOutUser = catchAsync(async (req: Request, res: Response) => {
+  await AuthServices.logOutUser(req.user!.id);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "User logged out successfully",
+  });
+});
+
 const getMe = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthServices.getMe(req.user!);
   sendResponse(res, {
@@ -70,10 +79,25 @@ const allUsers = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+const allOrgUsers = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthServices.getAllOrgUsers(
+    req.params.userId as string,
+    req.params.workspaceId as string,
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "All organization users retrieved successfully",
+    data: result,
+  });
+});
+
 export const AuthControllers = {
   registerUser,
   loginUser,
   getMe,
   switchWorkspace,
   allUsers,
+  allOrgUsers,
 };

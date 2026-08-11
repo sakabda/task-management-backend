@@ -306,15 +306,13 @@ model Comment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  isDeleted Boolean @default(false)
 }
 
 model Project {
   id          String  @id @default(cuid())
   name        String
   description String?
-
-  // Phase 2 advanced fields (defined now so the migration is one-shot;
-  // services default them and the UI fills them in Phase 2).
   startDate   DateTime?
   endDate     DateTime?
   budget      Decimal? @db.Decimal(12, 2)
@@ -326,17 +324,12 @@ model Project {
   priority    Priority      @default(MEDIUM)
   isArchived  Boolean  @default(false)
   isTemplate  Boolean  @default(false)
-
-  // Tenant scoping (additive, nullable for the backfill window).
   workspaceId String?
   workspace   Workspace? @relation(fields: [workspaceId], references: [id])
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   createdById String
   createdBy   User   @relation(fields: [createdById], references: [id])
-
   tasks   Task[]
   members ProjectMember[]
 }

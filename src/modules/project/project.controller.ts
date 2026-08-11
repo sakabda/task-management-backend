@@ -20,7 +20,10 @@ const createProject = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getProjects = catchAsync(async (req: Request, res: Response) => {
-  const result = await ProjectServices.getProjectsFromDB(req.user!);
+  const result = await ProjectServices.getProjectsFromDB(
+    req.user!,
+    req.params.workspaceId as string,
+  );
 
   sendResponse(res, {
     statusCode: 200,

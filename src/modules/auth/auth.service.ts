@@ -162,6 +162,19 @@ const loginUser = async (payload: TLoginUser) => {
   return { accessToken };
 };
 
+
+const logOutUser = async (userId: string) => {
+  // accessToken delete from local storage
+
+  await ActivityLogServices.createActivityLog({
+    action: "USER_LOGOUT",
+    entity: "USER",
+    entityId: userId,
+    userId: userId,
+    details: {},
+  });
+};
+
 // Re-issue a JWT with a different activeWorkspaceId. Validates membership
 // before minting so a user can't forge access to a workspace they don't
 // belong to by hand-crafting a token request.
@@ -272,11 +285,41 @@ const getAllUsers = async (
   });
 };
 
+const getAllOrgUsers = async (userId: string, workspaceId: string) => {
+  return prisma.user.findMany({
+    where: {
+      role: "USER",
+
+      // Don't return yourself
+      id: {
+        not: userId,
+      },
+
+      // Don't return users already in this workspace
+      workspaceMembers: {
+        none: {
+          workspaceId: workspaceId,
+        },
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  });
+};
+
+
+
+
 export const AuthServices = {
   registerUserIntoDB,
   loginUser,
+  logOutUser,
   switchWorkspace,
   getMe,
   getAllUsers,
   getAlreadyAssignedUsers,
+  getAllOrgUsers,
 };

@@ -13,13 +13,17 @@ import { ProjectControllers } from "./project.controller";
 const router = express.Router();
 
 router.post(
-  "/",
+  "/:workspaceId",
   auth("USER", "ADMIN"),
   validateRequest(createProjectValidationSchema),
   ProjectControllers.createProject,
 );
 
-router.get("/", auth("USER", "ADMIN"), ProjectControllers.getProjects);
+router.get(
+  "/:workspaceId",
+  auth("USER", "ADMIN"),
+  ProjectControllers.getProjects,
+);
 
 router.get("/:id", auth("USER", "ADMIN"), ProjectControllers.getSingleProject);
 

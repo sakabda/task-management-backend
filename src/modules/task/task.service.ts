@@ -35,6 +35,7 @@ const createTaskIntoDB = async (user: TJwtPayload, payload: TCreateTask) => {
     }
   }
 
+
   const result = await (prisma as any).task.create({
     data: {
       title: payload.title,
@@ -42,6 +43,7 @@ const createTaskIntoDB = async (user: TJwtPayload, payload: TCreateTask) => {
       priority: payload.priority,
       projectId: payload.projectId,
       createdById: user.id,
+      assignedToId: payload.assignedToId || null,
       dueDate: payload.dueDate ? new Date(payload.dueDate) : null,
     },
   });

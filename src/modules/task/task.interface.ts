@@ -3,6 +3,7 @@ export interface TCreateTask {
   description?: string;
   priority?: "LOW" | "MEDIUM" | "HIGH";
   projectId?: string;
+  assignedToId?: string;
   dueDate?: string;
 }
 
