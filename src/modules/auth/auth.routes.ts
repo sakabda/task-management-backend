@@ -37,4 +37,10 @@ router.get(
   AuthControllers.allUsers,
 );
 
+router.get(
+  "/users/:userId/org-users/:workspaceId",
+  auth("USER", "ADMIN"),
+  AuthControllers.allOrgUsers,
+);
+
 export default router;

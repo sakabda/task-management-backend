@@ -12,6 +12,7 @@ const createProjectIntoDB = async (userId: string, payload: TCreateProject) => {
       name: payload.name,
       description: payload.description,
       createdById: userId,
+      workspaceId: payload.workSpaceId,
     },
   });
 
@@ -28,28 +29,77 @@ const createProjectIntoDB = async (userId: string, payload: TCreateProject) => {
   return project;
 };
 
-const getProjectsFromDB = async (user: any) => {
-  const whereCondition =
-    user.role === "ADMIN" ?
-      {}
-    : {
-        OR: [
-          {
-            createdById: user.id,
-          },
-          {
-            members: {
-              some: {
-                userId: user.id,
+// const getProjectsFromDB = async (user: any, workspaceId: string) => {
+//   const whereCondition =
+//     user.role === "ADMIN" ?
+//       {}
+//     : {
+//         OR: [
+//           {
+//             createdById: user.id,
+//           },
+//           {
+//             members: {
+//               some: {
+//                 userId: user.id,
+//               },
+//             },
+//           },
+//         ],
+//       };
+
+//   return (prisma as any).project.findMany({
+//     where: whereCondition,
+
+//     include: {
+//       createdBy: {
+//         select: {
+//           id: true,
+//           name: true,
+//           email: true,
+//         },
+//       },
+
+//       _count: {
+//         select: {
+//           tasks: true,
+//           members: true,
+//         },
+//       },
+//     },
+
+//     orderBy: {
+//       createdAt: "desc",
+//     },
+//   });
+// };
+const getProjectsFromDB = async (user: any, workspaceId: string) => {
+  const whereCondition = {
+    AND: [
+      {
+        workspaceId, // Only projects belonging to this workspace
+      },
+      user.role === "ADMIN" ?
+        {}
+      : {
+          OR: [
+            {
+              createdById: user.id,
+            },
+            {
+              members: {
+                some: {
+                  userId: user.id,
+                },
               },
             },
-          },
-        ],
-      };
+          ],
+        },
+    ],
+  };
 
-  return (prisma as any).project.findMany({
+  return prisma.project.findMany({
     where: whereCondition,
-
     include: {
       createdBy: {
         select: {
@@ -58,7 +108,6 @@ const getProjectsFromDB = async (user: any) => {
           email: true,
         },
       },
-
       _count: {
         select: {
           tasks: true,
@@ -66,7 +115,6 @@ const getProjectsFromDB = async (user: any) => {
         },
       },
     },
-
     orderBy: {
       createdAt: "desc",
     },

@@ -33,6 +33,21 @@ const getMembers = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+const getAvailableMembers = catchAsync(async (req: Request, res: Response) => {
+  const result = await ProjectMemberServices.getAvailableMembersForProject(
+    req.params.projectId as string,
+    req.user,
+  );
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Available members retrieved successfully",
+    data: result,
+  });
+});
+
 const removeMember = catchAsync(async (req: Request, res: Response) => {
   await ProjectMemberServices.removeProjectMember(
     req.params.memberId as string,
@@ -46,8 +61,27 @@ const removeMember = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAvailableAssignMembers = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await ProjectMemberServices.getAvailableMembersForAssignment(
+      req.params.projectId as string,
+      req.user,
+      req.params.workspaceId as string,
+    );
+
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Available members for assignment retrieved successfully",
+      data: result,
+    });
+  },
+);
+
 export const ProjectMemberControllers = {
   addMember,
   getMembers,
+  getAvailableMembers,
   removeMember,
+  getAvailableAssignMembers,
 };

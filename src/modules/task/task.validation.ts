@@ -8,6 +8,7 @@ export const createTaskValidationSchema = z.object({
     priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional(),
 
     projectId: z.string().optional(),
+    assignedToId: z.string().optional(),
     dueDate: z.string().datetime().optional(),
   }),
 });

@@ -4,6 +4,7 @@ export const createProjectValidationSchema = z.object({
   body: z.object({
     name: z.string().min(3),
     description: z.string().optional(),
+    workSpaceId: z.string(),
   }),
 });
 
