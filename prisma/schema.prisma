@@ -8,7 +8,7 @@ datasource db {
 }
 
 // ─────────────────────────────────────────────────────────────
-// PHASE 1 — Multi-tenant hierarchy
+//  Multi-tenant hierarchy
 //   Organization → Workspace → Department → Team → Project
 //
 // Tenancy: shared DB, row-level isolation. Tenant-scoped tables
@@ -35,8 +35,6 @@ enum InvitationStatus {
   REVOKED
 }
 
-// Forward-declared enums used by later phases — defined here so the
-// Project model can carry them now without a second migration.
 enum ProjectHealth {
   ON_TRACK
   AT_RISK
@@ -167,7 +165,6 @@ model Team {
   @@index([departmentId])
 }
 
-// ── Memberships (mirror the existing ProjectMember pattern) ───
 
 model WorkspaceMember {
   id          String   @id @default(cuid())
@@ -235,10 +232,7 @@ model Invitation {
   @@index([status])
 }
 
-// ─────────────────────────────────────────────────────────────
-// Existing domain models (auth/task/project/comment/…)
-// — additive tenant columns are added in place.
-// ─────────────────────────────────────────────────────────────
+
 
 model Task {
   id String @id @default(cuid())
