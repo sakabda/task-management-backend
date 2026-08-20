@@ -31,4 +31,5 @@ export interface TTaskQuery {
   sortBy?: string;
 
   sortOrder?: "asc" | "desc";
+
 }
