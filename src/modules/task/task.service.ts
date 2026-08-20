@@ -77,10 +77,20 @@ const getTasksFromDB = async (user: TJwtPayload, query: TTaskQuery) => {
   const skip = (Number(page) - 1) * Number(limit);
 
   const whereConditions: any = {};
+  whereConditions.project = {
+    workspaceId: user.activeWorkspaceId,
+  };
 
-  if (user.role !== "ADMIN") {
-    whereConditions.createdById = user.id;
-  }
+ if (user.role !== "ADMIN") {
+   whereConditions.OR = [
+     {
+       createdById: user.id,
+     },
+     {
+       assignedToId: user.id,
+     },
+   ];
+ }
 
   if (status) {
     whereConditions.status = status;
@@ -162,6 +172,7 @@ const getTasksFromDB = async (user: TJwtPayload, query: TTaskQuery) => {
 };
 
 const getSingleTaskFromDB = async (taskId: string, user: TJwtPayload) => {
+  console.log("task id", taskId, "user", user);
   const task = await (prisma as any).task.findUnique({
     where: {
       id: taskId,
@@ -179,9 +190,9 @@ const getSingleTaskFromDB = async (taskId: string, user: TJwtPayload) => {
     throw new AppError(404, "Task not found");
   }
 
-  if (user.role !== "ADMIN" && task.createdById !== user.id) {
-    throw new AppError(403, "Forbidden access");
-  }
+  // if (user.role !== "ADMIN" && task.createdById !== user.id) {
+  //   throw new AppError(403, "Forbidden access");
+  // }
 
   return task;
 };

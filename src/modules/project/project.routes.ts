@@ -18,6 +18,7 @@ router.post(
   validateRequest(createProjectValidationSchema),
   ProjectControllers.createProject,
 );
+router.get("/:id", auth("USER", "ADMIN"), ProjectControllers.getSingleProject);
 
 router.get(
   "/:workspaceId",
@@ -25,7 +26,6 @@ router.get(
   ProjectControllers.getProjects,
 );
 
-router.get("/:id", auth("USER", "ADMIN"), ProjectControllers.getSingleProject);
 
 router.patch(
   "/:id",
