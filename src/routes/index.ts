@@ -25,17 +25,15 @@ const moduleRoutes = [
   { path: "/activity-logs", route: ActivityLogRoutes },
   { path: "/comments", route: CommentRoutes },
   { path: "/projects", route: ProjectRoutes },
-  // Project members (nested under /projects)
+  // Project members
   { path: "/projects", route: ProjectMemberRoutes },
   { path: "/notifications", route: NotificationRoutes },
   { path: "/dashboard", route: DashboardRoutes },
 
-  // Phase 1 — tenant hierarchy
+  // tenant hierarchy
   { path: "/organizations", route: organizationRoutes },
   { path: "/workspaces", route: workspaceRoutes },
-  // Departments, teams and workspace-members are nested under /workspaces
-  // (e.g. POST /workspaces/:workspaceId/departments) so each router reads
-  // req.params.workspaceId for membership resolution.
+
   { path: "/workspaces", route: departmentRoutes },
   { path: "/workspaces", route: teamRoutes },
   { path: "/workspaces", route: workspaceMemberRoutes },
