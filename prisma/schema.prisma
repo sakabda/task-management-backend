@@ -344,16 +344,35 @@ model ProjectMember {
   @@unique([projectId, userId])
 }
 
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_UPDATED
+  TASK_COMPLETED
+  TASK_DUE
+  COMMENT_ADDED
+  PROJECT_CREATED
+  PROJECT_MEMBER_ADDED
+  WORKSPACE_MEMBER_ADDED
+}
+
 model Notification {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  title     String
-  message   String
+  title   String
+  message String
 
-  isRead    Boolean  @default(false)
+  type NotificationType
 
-  userId    String
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entityId String?
+  entityType String?
+
+  isRead Boolean @default(false)
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
 }
