@@ -49,20 +49,20 @@ const createOrganizationIntoDB = async (
     },
   });
 
-  await ActivityLogServices.createActivityLog({
-    action: "ORGANIZATION_CREATED",
-    entity: "ORGANIZATION",
-    entityId: organization.id,
-    userId: user.id,
-    details: { name: organization.name, slug: organization.slug },
-  });
+  // await ActivityLogServices.createActivityLog({
+  //   action: "ORGANIZATION_CREATED",
+  //   entity: "ORGANIZATION",
+  //   entityId: organization.id,
+  //   userId: user.id,
+  //   details: { name: organization.name, slug: organization.slug },
+  // });
 
   return organization;
 };
 
 // Orgs the user can see: ones they own, or ones containing a workspace
 // they're a member of.
-const getOrganizationsFromDB = async (user: TJwtPayload) => {
+const getOrganizationsFromDB = async (user: any) => {
   const [owned, viaMembership] = await Promise.all([
     prisma.organization.findMany({
       where: { ownerId: user.id },
@@ -156,7 +156,6 @@ const updateOrganizationIntoDB = async (
       throw new AppError(409, "Slug is already taken");
     }
   }
-
   const organization = await prisma.organization.update({
     where: { id: organizationId },
     data: payload,
@@ -165,13 +164,13 @@ const updateOrganizationIntoDB = async (
     },
   });
 
-  await ActivityLogServices.createActivityLog({
-    action: "ORGANIZATION_UPDATED",
-    entity: "ORGANIZATION",
-    entityId: organization.id,
-    userId: user.id,
-    details: payload,
-  });
+  // await ActivityLogServices.createActivityLog({
+  //   action: "ORGANIZATION_UPDATED",
+  //   entity: "ORGANIZATION",
+  //   entityId: organization.id,
+  //   userId: user.id,
+  //   details: payload,
+  // });
 
   return organization;
 };
@@ -196,13 +195,13 @@ const deleteOrganizationIntoDB = async (
   // Cascade-delete will remove workspaces, departments, teams, memberships.
   await prisma.organization.delete({ where: { id: organizationId } });
 
-  await ActivityLogServices.createActivityLog({
-    action: "ORGANIZATION_DELETED",
-    entity: "ORGANIZATION",
-    entityId: organizationId,
-    userId: user.id,
-    details: { name: existing.name },
-  });
+  // await ActivityLogServices.createActivityLog({
+  //   action: "ORGANIZATION_DELETED",
+  //   entity: "ORGANIZATION",
+  //   entityId: organizationId,
+  //   userId: user.id,
+  //   details: { name: existing.name },
+  // });
 
   return null;
 };

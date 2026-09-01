@@ -38,6 +38,8 @@ const auth = (...requiredRoles: string[]) => {
         workspaceRole: decoded.workspaceRole,
       };
 
+      console.log("Decoded JWT payload:", requiredRoles, decoded, req.user);
+
       if (requiredRoles.length && !requiredRoles.includes(decoded.role)) {
         throw new AppError(403, "Forbidden access");
       }

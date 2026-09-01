@@ -11,6 +11,7 @@ export const createOrganizationValidationSchema = z.object({
       .regex(slugRegex, "Slug must be 3–40 lowercase chars, hyphens allowed")
       .optional(),
     description: z.string().max(500).optional(),
+    status: z.enum(["ACTIVE", "PENDING", "SUSPENDED", "DELETED"]).optional(),
     logoUrl: z.url().optional(),
   }),
 });
@@ -23,6 +24,7 @@ export const updateOrganizationValidationSchema = z.object({
       .regex(slugRegex, "Slug must be 3–40 lowercase chars, hyphens allowed")
       .optional(),
     description: z.string().max(500).optional(),
+    status: z.enum(["ACTIVE", "PENDING", "SUSPENDED", "DELETED"]).optional(),
     logoUrl: z.url().optional(),
   }),
 });

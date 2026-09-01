@@ -59,6 +59,7 @@ const createWorkspaceIntoDB = async (
       description: payload.description,
       iconUrl: payload.iconUrl,
       organizationId: payload.organizationId,
+      ownerId: user.id,
     },
     include: {
       organization: { select: { id: true, name: true, slug: true } },

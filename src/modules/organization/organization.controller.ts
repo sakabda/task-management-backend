@@ -47,6 +47,9 @@ const getSingleOrganization = catchAsync(
 );
 
 const updateOrganization = catchAsync(async (req: Request, res: Response) => {
+
+  console.log("req.params.id", req.params.id);
+  console.log("req.body", req.body);
   const result = await OrganizationServices.updateOrganizationIntoDB(
     req.params.id as string,
     req.user!,
