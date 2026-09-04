@@ -13,29 +13,34 @@ const router = Router();
 
 router.post(
   "/",
-  auth("USER", "ADMIN"),
+  auth("USER", "ADMIN", "SUPER_ADMIN"),
   validateRequest(createWorkspaceValidationSchema),
   WorkspaceControllers.createWorkspace,
 );
 
-router.get("/", auth("USER", "ADMIN"), WorkspaceControllers.getWorkspaces);
+router.get(
+  "/",
+  auth("USER", "ADMIN", "SUPER_ADMIN"),
+  WorkspaceControllers.getWorkspaces,
+);
+
 
 router.get(
   "/:id",
-  auth("USER", "ADMIN"),
+  auth("USER", "ADMIN", "SUPER_ADMIN"),
   WorkspaceControllers.getSingleWorkspace,
 );
 
 router.patch(
   "/:id",
-  auth("USER", "ADMIN"),
+  auth("USER", "ADMIN", "SUPER_ADMIN"),
   validateRequest(updateWorkspaceValidationSchema),
   WorkspaceControllers.updateWorkspace,
 );
 
 router.delete(
   "/:id",
-  auth("USER", "ADMIN"),
+  auth("USER", "ADMIN", "SUPER_ADMIN"),
   WorkspaceControllers.deleteWorkspace,
 );
 

@@ -26,6 +26,12 @@ router.get(
 );
 
 router.get(
+  "/all",
+  auth("ADMIN", "SUPER_ADMIN"),
+  OrganizationControllers.getALlOrganizations,
+);
+
+router.get(
   "/:id",
   auth("USER", "ADMIN", "SUPER_ADMIN"),
   OrganizationControllers.getSingleOrganization,

@@ -62,6 +62,39 @@ const createOrganizationIntoDB = async (
 
 // Orgs the user can see: ones they own, or ones containing a workspace
 // they're a member of.
+// const getOrganizationsFromDB = async (user: any) => {
+//   const [owned, viaMembership] = await Promise.all([
+//     prisma.organization.findMany({
+//       where: { ownerId: user.id },
+//       include: {
+//         owner: { select: { id: true, name: true, email: true } },
+//         _count: { select: { workspaces: true } },
+//       },
+//       orderBy: { createdAt: "desc" },
+//     }),
+//     prisma.organization.findMany({
+//       where: {
+//         workspaces: {
+//           some: { members: { some: { userId: user.id } } },
+//         },
+//       },
+//       include: {
+//         owner: { select: { id: true, name: true, email: true } },
+//         _count: { select: { workspaces: true } },
+//       },
+//       orderBy: { createdAt: "desc" },
+//     }),
+//   ]);
+
+//   // De-dupe (an owner who is also a member of their own workspace).
+//   const seen = new Set<string>();
+//   return [...owned, ...viaMembership].filter((org) => {
+//     if (seen.has(org.id)) return false;
+//     seen.add(org.id);
+//     return true;
+//   });
+// };
+
 const getOrganizationsFromDB = async (user: any) => {
   const [owned, viaMembership] = await Promise.all([
     prisma.organization.findMany({
@@ -93,6 +126,23 @@ const getOrganizationsFromDB = async (user: any) => {
     seen.add(org.id);
     return true;
   });
+};
+
+const getALlOrganizationsFromDB = async (user: any) => {
+  console.log("User role:", user.role);
+  if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
+    throw new AppError(403, "You do not have access to this resource");
+  }
+
+  const organizations = await prisma.organization.findMany({
+    include: {
+      owner: { select: { id: true, name: true, email: true } },
+      _count: { select: { workspaces: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return organizations;
 };
 
 const getSingleOrganizationFromDB = async (
@@ -209,6 +259,7 @@ const deleteOrganizationIntoDB = async (
 export const OrganizationServices = {
   createOrganizationIntoDB,
   getOrganizationsFromDB,
+  getALlOrganizationsFromDB,
   getSingleOrganizationFromDB,
   updateOrganizationIntoDB,
   deleteOrganizationIntoDB,

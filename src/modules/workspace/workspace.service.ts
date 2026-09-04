@@ -47,7 +47,10 @@ const createWorkspaceIntoDB = async (
   }
 
   if (organization.ownerId !== user.id && user.role !== "ADMIN") {
-    throw new AppError(403, "Only the organization owner can create workspaces");
+    throw new AppError(
+      403,
+      "Only the organization owner can create workspaces",
+    );
   }
 
   const slug = await ensureUniqueSlug(payload.slug || slugify(payload.name));
@@ -75,13 +78,13 @@ const createWorkspaceIntoDB = async (
     },
   });
 
-  await ActivityLogServices.createActivityLog({
-    action: "WORKSPACE_CREATED",
-    entity: "WORKSPACE",
-    entityId: workspace.id,
-    userId: user.id,
-    details: { name: workspace.name, slug: workspace.slug },
-  });
+  // await ActivityLogServices.createActivityLog({
+  //   action: "WORKSPACE_CREATED",
+  //   entity: "WORKSPACE",
+  //   entityId: workspace.id,
+  //   userId: user.id,
+  //   details: { name: workspace.name, slug: workspace.slug },
+  // });
 
   return workspace;
 };
@@ -95,6 +98,13 @@ const getWorkspacesFromDB = async (user: TJwtPayload) => {
       workspace: {
         include: {
           organization: { select: { id: true, name: true, slug: true } },
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           _count: { select: { members: true, projects: true, teams: true } },
         },
       },
@@ -151,13 +161,13 @@ const updateWorkspaceIntoDB = async (
     },
   });
 
-  await ActivityLogServices.createActivityLog({
-    action: "WORKSPACE_UPDATED",
-    entity: "WORKSPACE",
-    entityId: workspace.id,
-    userId: user.id,
-    details: payload,
-  });
+  // await ActivityLogServices.createActivityLog({
+  //   action: "WORKSPACE_UPDATED",
+  //   entity: "WORKSPACE",
+  //   entityId: workspace.id,
+  //   userId: user.id,
+  //   details: payload,
+  // });
 
   return workspace;
 };
