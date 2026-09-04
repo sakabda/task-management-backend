@@ -4,6 +4,7 @@ export interface TCreateOrganization {
   name: string;
   slug?: string;
   description?: string;
+  status?: "ACTIVE" | "PENDING" | "SUSPENDED" | "DELETED";
   logoUrl?: string;
 }
 
@@ -11,6 +12,7 @@ export interface TUpdateOrganization {
   name?: string;
   slug?: string;
   description?: string;
+  status?: "ACTIVE" | "PENDING" | "SUSPENDED" | "DELETED";
   logoUrl?: string;
 }
 

@@ -7,6 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+<<<<<<< HEAD
 // ─────────────────────────────────────────────────────────────
 //  Multi-tenant hierarchy
 //   Organization → Workspace → Department → Team → Project
@@ -16,6 +17,313 @@ datasource db {
 // WorkspaceMember.role (matrix). SUPER_ADMIN is a global flag
 // on User.role and bypasses all checks.
 // ─────────────────────────────────────────────────────────────
+=======
+model User {
+  id                  String            @id @default(cuid())
+  name                String
+  email               String            @unique
+  password            String
+  role                String            @default("USER")
+  createdAt           DateTime          @default(now())
+  avatarUrl           String?
+  updatedAt           DateTime          @updatedAt
+  activeWorkspaceId   String?
+  activityLogs        ActivityLog[]
+  comments            Comment[]
+  receivedInvitations Invitation[]      @relation("InvitationInvitee")
+  sentInvitations     Invitation[]      @relation("InvitationInviter")
+  notifications       Notification[]
+  ownedOrganizations  Organization[]    @relation("OrganizationOwner")
+  createdProjects     Project[]
+  projectMembers      ProjectMember[]
+  assignedTasks       Task[]            @relation("TaskAssignee")
+  createdTasks        Task[]            @relation("TaskCreator")
+  ownedWorkspaces     Workspace[]       @relation("WorkspaceOwner")
+  workspaceMembers    WorkspaceMember[]
+}
+
+model Organization {
+  id            String        @id @default(cuid())
+  name          String
+  slug          String        @unique
+  description   String?
+  logoUrl       String?
+  ownerId       String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  isActive      Boolean       @default(true)
+  maxMembers    Int           @default(10)
+  maxWorkspaces Int           @default(1)
+  plan          WorkspacePlan @default(FREE)
+  status        OrgStatus     @default(ACTIVE)
+  storageLimit  Int           @default(1024)
+  invitations   Invitation[]  @relation("OrganizationInvitations")
+  owner         User          @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  workspaces    Workspace[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model Workspace {
+  id             String            @id @default(cuid())
+  name           String
+  slug           String            @unique
+  description    String?
+  iconUrl        String?
+  organizationId String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  isActive       Boolean           @default(true)
+  isArchived     Boolean           @default(false)
+  ownerId        String
+  plan           WorkspacePlan     @default(FREE)
+  settings       Json?
+  departments    Department[]
+  invitations    Invitation[]      @relation("WorkspaceInvitations")
+  projects       Project[]
+  teams          Team[]
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner          User              @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members        WorkspaceMember[]
+
+  @@index([organizationId])
+}
+
+model Department {
+  id          String    @id @default(cuid())
+  name        String
+  workspaceId String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  teams       Team[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+}
+
+model Team {
+  id           String       @id @default(cuid())
+  name         String
+  description  String?
+  workspaceId  String
+  departmentId String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  members      TeamMember[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@index([departmentId])
+}
+
+model WorkspaceMember {
+  id             String          @id @default(cuid())
+  workspaceId    String
+  userId         String
+  role           Role            @default(DEVELOPER)
+  joinedAt       DateTime        @default(now())
+  projectMembers ProjectMember[]
+  teams          TeamMember[]
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+}
+
+model TeamMember {
+  id                String          @id @default(cuid())
+  teamId            String
+  workspaceMemberId String
+  joinedAt          DateTime        @default(now())
+  team              Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  workspaceMember   WorkspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, workspaceMemberId])
+  @@index([workspaceMemberId])
+}
+
+model Invitation {
+  id             String           @id @default(cuid())
+  email          String
+  token          String           @unique
+  status         InvitationStatus @default(PENDING)
+  role           Role             @default(DEVELOPER)
+  inviterId      String
+  inviteeId      String?
+  organizationId String?
+  workspaceId    String?
+  expiresAt      DateTime?
+  acceptedAt     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  invitee        User?            @relation("InvitationInvitee", fields: [inviteeId], references: [id])
+  inviter        User             @relation("InvitationInviter", fields: [inviterId], references: [id])
+  organization   Organization?    @relation("OrganizationInvitations", fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace      Workspace?       @relation("WorkspaceInvitations", fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([status])
+  @@index([inviterId])
+}
+
+model Project {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  createdById String
+  startDate   DateTime?
+  endDate     DateTime?
+  progress    Int             @default(0)
+  health      ProjectHealth   @default(ON_TRACK)
+  riskLevel   RiskLevel       @default(MEDIUM)
+  priority    Priority        @default(MEDIUM)
+  workspaceId String
+  key         String
+  status      ProjectStatus   @default(PLANNED)
+  epics       Epic[]
+  createdBy   User            @relation(fields: [createdById], references: [id])
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  members     ProjectMember[]
+  sprints     Sprint[]
+  tasks       Task[]
+
+  @@unique([workspaceId, key])
+  @@index([workspaceId])
+}
+
+model ProjectMember {
+  id                String          @id @default(cuid())
+  projectId         String
+  userId            String?
+  createdAt         DateTime        @default(now())
+  workspaceMemberId String
+  role              ProjectRole     @default(MEMBER)
+  project           Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user              User?           @relation(fields: [userId], references: [id])
+  workspaceMember   WorkspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, workspaceMemberId])
+}
+
+model Task {
+  id           String          @id @default(cuid())
+  title        String
+  description  String?
+  status       TaskStatus      @default(TODO)
+  priority     Priority        @default(MEDIUM)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  createdById  String
+  assignedToId String?
+  projectId    String
+  epicId       String?
+  number       Int
+  sprintId     String?
+  workspaceId  String
+  activities   ActivityLog[]
+  attachments  Attachment[]
+  checklist    ChecklistItem[]
+  comments     Comment[]
+  assignedTo   User?           @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  createdBy    User            @relation("TaskCreator", fields: [createdById], references: [id])
+  epic         Epic?           @relation(fields: [epicId], references: [id])
+  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sprint       Sprint?         @relation(fields: [sprintId], references: [id])
+
+  @@index([projectId, status])
+  @@index([assignedToId])
+}
+
+model Sprint {
+  id        String    @id @default(cuid())
+  name      String
+  goal      String?
+  projectId String
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+}
+
+model Epic {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  color       String?
+  projectId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  content     String
+  taskId      String
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isDeleted   Boolean  @default(false)
+  workspaceId String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  action      String
+  entity      String
+  entityId    String
+  details     Json?
+  userId      String
+  createdAt   DateTime @default(now())
+  taskId      String?
+  workspaceId String
+  task        Task?    @relation(fields: [taskId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  taskId    String
+  url       String
+  filename  String
+  size      Int
+  mimeType  String
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model ChecklistItem {
+  id        String   @id @default(cuid())
+  taskId    String
+  title     String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  userId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+>>>>>>> f2bc8495f8402bb1d1269b4e5f78e61a01680ea0
 
 enum Role {
   ORG_ADMIN
@@ -25,6 +333,14 @@ enum Role {
   QA
   CLIENT
   GUEST
+  WORKSPACE_ADMIN
+}
+
+enum WorkspacePlan {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
 }
 
 enum InvitationStatus {
@@ -35,6 +351,24 @@ enum InvitationStatus {
   REVOKED
 }
 
+<<<<<<< HEAD
+=======
+enum ProjectStatus {
+  PLANNED
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+enum ProjectRole {
+  OWNER
+  MANAGER
+  MEMBER
+  VIEWER
+}
+
+>>>>>>> f2bc8495f8402bb1d1269b4e5f78e61a01680ea0
 enum ProjectHealth {
   ON_TRACK
   AT_RISK
@@ -49,6 +383,7 @@ enum RiskLevel {
   CRITICAL
 }
 
+<<<<<<< HEAD
 // ── Identity ──────────────────────────────────────────────────
 
 model User {
@@ -260,18 +595,26 @@ model Task {
   comments Comment[]
 }
 
+=======
+>>>>>>> f2bc8495f8402bb1d1269b4e5f78e61a01680ea0
 enum TaskStatus {
   TODO
   IN_PROGRESS
   DONE
+  BACKLOG
+  REVIEW
+  TESTING
+  CANCELLED
 }
 
 enum Priority {
   LOW
   MEDIUM
   HIGH
+  CRITICAL
 }
 
+<<<<<<< HEAD
 model ActivityLog {
   id String @id @default(cuid())
 
@@ -375,4 +718,11 @@ model Notification {
 
   @@index([userId, isRead])
   @@index([createdAt])
+=======
+enum OrgStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DELETED
+>>>>>>> f2bc8495f8402bb1d1269b4e5f78e61a01680ea0
 }

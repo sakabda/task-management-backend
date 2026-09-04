@@ -73,6 +73,7 @@ const provisionDefaultTenant = async (userId: string, userName: string) => {
         name: `${userName || "My"} Workspace`,
         slug: `ws-${slugBase}-${suffix}`,
         organizationId: org.id,
+        ownerId: userId,
       },
     });
 

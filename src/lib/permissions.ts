@@ -13,6 +13,7 @@
 
 export const ROLES = [
   "ORG_ADMIN",
+  "WORKSPACE_ADMIN",
   "PROJECT_MANAGER",
   "TEAM_LEAD",
   "DEVELOPER",
@@ -77,6 +78,10 @@ const ALL: Permission[] = [...PERMISSIONS];
 const MATRIX: Record<TRole, Permission[]> = {
   ORG_ADMIN: ALL,
 
+  WORKSPACE_ADMIN: ALL.filter(
+    (permission) => permission !== "org.manage" && permission !== "org.delete",
+  ),
+
   PROJECT_MANAGER: [
     "org.view",
     "workspace.view",
@@ -136,12 +141,7 @@ const MATRIX: Record<TRole, Permission[]> = {
     "task.update_status",
   ],
 
-  CLIENT: [
-    "org.view",
-    "workspace.view",
-    "project.view",
-    "task.view",
-  ],
+  CLIENT: ["org.view", "workspace.view", "project.view", "task.view"],
 
   GUEST: ["task.view"],
 };

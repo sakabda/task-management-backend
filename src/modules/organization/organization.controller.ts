@@ -30,6 +30,20 @@ const getOrganizations = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getALlOrganizations = catchAsync(async (req: Request, res: Response) => {
+  console.log("User role controller:", req.user?.role);
+  const result = await OrganizationServices.getALlOrganizationsFromDB(
+    req.user!,
+  );
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "All Organizations retrieved successfully",
+    data: result,
+  });
+});
+
 const getSingleOrganization = catchAsync(
   async (req: Request, res: Response) => {
     const result = await OrganizationServices.getSingleOrganizationFromDB(
@@ -47,6 +61,9 @@ const getSingleOrganization = catchAsync(
 );
 
 const updateOrganization = catchAsync(async (req: Request, res: Response) => {
+
+  console.log("req.params.id", req.params.id);
+  console.log("req.body", req.body);
   const result = await OrganizationServices.updateOrganizationIntoDB(
     req.params.id as string,
     req.user!,
@@ -78,6 +95,7 @@ const deleteOrganization = catchAsync(async (req: Request, res: Response) => {
 export const OrganizationControllers = {
   createOrganization,
   getOrganizations,
+  getALlOrganizations,
   getSingleOrganization,
   updateOrganization,
   deleteOrganization,
