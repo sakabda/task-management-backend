@@ -7,17 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-<<<<<<< HEAD
-// ─────────────────────────────────────────────────────────────
-//  Multi-tenant hierarchy
-//   Organization → Workspace → Department → Team → Project
-//
-// Tenancy: shared DB, row-level isolation. Tenant-scoped tables
-// carry a `workspaceId` column (see Project). RBAC lives on
-// WorkspaceMember.role (matrix). SUPER_ADMIN is a global flag
-// on User.role and bypasses all checks.
-// ─────────────────────────────────────────────────────────────
-=======
 model User {
   id                  String            @id @default(cuid())
   name                String
@@ -323,7 +312,6 @@ model Notification {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
->>>>>>> f2bc8495f8402bb1d1269b4e5f78e61a01680ea0
 
 enum Role {
   ORG_ADMIN
@@ -351,8 +339,6 @@ enum InvitationStatus {
   REVOKED
 }
 
-<<<<<<< HEAD
-=======
 enum ProjectStatus {
   PLANNED
   ACTIVE
@@ -368,7 +354,6 @@ enum ProjectRole {
   VIEWER
 }
 
->>>>>>> f2bc8495f8402bb1d1269b4e5f78e61a01680ea0
 enum ProjectHealth {
   ON_TRACK
   AT_RISK
@@ -383,220 +368,6 @@ enum RiskLevel {
   CRITICAL
 }
 
-<<<<<<< HEAD
-// ── Identity ──────────────────────────────────────────────────
-
-model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("USER") // global role: "USER" | "ADMIN" | "SUPER_ADMIN"
-  avatarUrl String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Last-selected workspace (persisted across sessions).
-  activeWorkspaceId String?
-
-  createdTasks  Task[] @relation("TaskCreator")
-  assignedTasks Task[] @relation("TaskAssignee")
-
-  comments     Comment[]
-  activityLogs ActivityLog[]
-
-  createdProjects Project[]
-  projectMembers  ProjectMember[]
-  notifications Notification[]
-
-  // Tenant relations. TeamMember is reached via WorkspaceMember,
-  // not User directly (User → WorkspaceMember → TeamMember).
-  ownedOrganizations Organization[] @relation("OrganizationOwner")
-  workspaceMembers   WorkspaceMember[]
-  sentInvitations    Invitation[]    @relation("InvitationInviter")
-  receivedInvitations Invitation[]   @relation("InvitationInvitee")
-}
-
-// ── Tenant hierarchy ──────────────────────────────────────────
-
-model Organization {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?
-  logoUrl     String?
-
-  ownerId String
-  owner   User   @relation("OrganizationOwner", fields: [ownerId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  workspaces   Workspace[]
-  invitations  Invitation[] @relation("OrganizationInvitations")
-
-  @@index([ownerId])
-}
-
-model Workspace {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?
-  iconUrl     String?
-
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  departments Department[]
-  teams      Team[]
-  members    WorkspaceMember[]
-  invitations Invitation[] @relation("WorkspaceInvitations")
-  projects   Project[]
-
-  @@index([organizationId])
-}
-
-model Department {
-  id   String @id @default(cuid())
-  name String
-
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  teams Team[]
-
-  @@unique([workspaceId, name])
-  @@index([workspaceId])
-}
-
-model Team {
-  id   String @id @default(cuid())
-  name String
-  description String?
-
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  // A team MAY belong to a department (matrix orgs); nullable so teams
-  // can be cross-departmental.
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  members TeamMember[]
-
-  @@unique([workspaceId, name])
-  @@index([workspaceId])
-  @@index([departmentId])
-}
-
-
-model WorkspaceMember {
-  id          String   @id @default(cuid())
-  workspaceId String
-  userId      String
-  role        Role     @default(DEVELOPER)
-  joinedAt    DateTime @default(now())
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  teams TeamMember[]
-
-  @@unique([workspaceId, userId])
-  @@index([userId])
-}
-
-model TeamMember {
-  id                String @id @default(cuid())
-  teamId            String
-  workspaceMemberId String
-
-  team            Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  workspaceMember WorkspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
-
-  joinedAt DateTime @default(now())
-
-  @@unique([teamId, workspaceMemberId])
-  @@index([workspaceMemberId])
-}
-
-// ── Invitations ───────────────────────────────────────────────
-
-model Invitation {
-  id    String @id @default(cuid())
-  email String
-  token String @unique
-
-  status InvitationStatus @default(PENDING)
-  role   Role             @default(DEVELOPER)
-
-  inviterId String
-  inviter   User @relation("InvitationInviter", fields: [inviterId], references: [id])
-
-  // Invitee is set once the invitation is accepted and a user is
-  // resolved/created. Nullable until then.
-  inviteeId String?
-  invitee   User? @relation("InvitationInvitee", fields: [inviteeId], references: [id])
-
-  // Membership target — at least one must be set at creation.
-  organizationId String?
-  organization   Organization? @relation("OrganizationInvitations", fields: [organizationId], references: [id], onDelete: Cascade)
-
-  workspaceId String?
-  workspace   Workspace? @relation("WorkspaceInvitations", fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  expiresAt  DateTime?
-  acceptedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([email])
-  @@index([inviterId])
-  @@index([status])
-}
-
-
-
-model Task {
-  id String @id @default(cuid())
-
-  title       String
-  description String?
-
-  status   TaskStatus @default(TODO)
-  priority Priority   @default(MEDIUM)
-
-  dueDate DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  createdById String
-  createdBy   User   @relation("TaskCreator", fields: [createdById], references: [id])
-
-  assignedToId String?
-  assignedTo   User?   @relation("TaskAssignee", fields: [assignedToId], references: [id])
-
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id])
-
-  comments Comment[]
-}
-
-=======
->>>>>>> f2bc8495f8402bb1d1269b4e5f78e61a01680ea0
 enum TaskStatus {
   TODO
   IN_PROGRESS
@@ -614,115 +385,9 @@ enum Priority {
   CRITICAL
 }
 
-<<<<<<< HEAD
-model ActivityLog {
-  id String @id @default(cuid())
-
-  action   String
-  entity   String
-  entityId String
-
-  details Json?
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  createdAt DateTime @default(now())
-}
-
-model Comment {
-  id String @id @default(cuid())
-
-  content String
-
-  taskId String
-  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  isDeleted Boolean @default(false)
-}
-
-model Project {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  startDate   DateTime?
-  endDate     DateTime?
-  budget      Decimal? @db.Decimal(12, 2)
-  clientId    String?
-  status      String   @default("PLANNED") // PLANNED | ACTIVE | ON_HOLD | COMPLETED | ARCHIVED
-  progress    Int      @default(0) // 0–100
-  health      ProjectHealth @default(ON_TRACK)
-  riskLevel   RiskLevel     @default(MEDIUM)
-  priority    Priority      @default(MEDIUM)
-  isArchived  Boolean  @default(false)
-  isTemplate  Boolean  @default(false)
-  workspaceId String?
-  workspace   Workspace? @relation(fields: [workspaceId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id])
-  tasks   Task[]
-  members ProjectMember[]
-}
-
-model ProjectMember {
-  id String @id @default(cuid())
-
-  projectId String
-  userId    String
-
-  role String @default("MEMBER")
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@unique([projectId, userId])
-}
-
-enum NotificationType {
-  TASK_ASSIGNED
-  TASK_UPDATED
-  TASK_COMPLETED
-  TASK_DUE
-  COMMENT_ADDED
-  PROJECT_CREATED
-  PROJECT_MEMBER_ADDED
-  WORKSPACE_MEMBER_ADDED
-}
-
-model Notification {
-  id String @id @default(cuid())
-
-  title   String
-  message String
-
-  type NotificationType
-
-  entityId String?
-  entityType String?
-
-  isRead Boolean @default(false)
-
-  userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@index([userId, isRead])
-  @@index([createdAt])
-=======
 enum OrgStatus {
   PENDING
   ACTIVE
   SUSPENDED
   DELETED
->>>>>>> f2bc8495f8402bb1d1269b4e5f78e61a01680ea0
 }
