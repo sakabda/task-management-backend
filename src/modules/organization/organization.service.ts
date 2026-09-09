@@ -1,10 +1,16 @@
 import prisma from "../../prisma/prisma";
 import AppError from "../../errors/AppError";
+import bcrypt from "bcryptjs";
 
 import { TJwtPayload } from "../auth/auth.interface";
-import { ActivityLogServices } from "../activity-log/activityLog.service";
-
 import { TCreateOrganization, TUpdateOrganization } from "./organization.interface";
+import {
+  OrganizationRole,
+  Prisma,
+  WorkspacePlan,
+  UserRole,
+} from "@prisma/client";
+
 
 // Derive a unique slug when the caller doesn't supply one.
 const slugify = (name: string) =>
@@ -14,51 +20,94 @@ const slugify = (name: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 30);
 
-const ensureUniqueSlug = async (base: string): Promise<string> => {
-  let candidate = base || "org";
-  let n = 1;
-  // Bound the loop — if we collide 50 times something is very wrong.
-  while (n < 50) {
-    const exists = await prisma.organization.findUnique({
-      where: { slug: candidate },
-      select: { id: true },
+const ensureUniqueSlug = async (slug: string, tx: Prisma.TransactionClient) => {
+  let currentSlug = slug;
+
+  let counter = 1;
+
+  while (true) {
+    const exists = await tx.organization.findUnique({
+      where: {
+        slug: currentSlug,
+      },
     });
-    if (!exists) return candidate;
-    candidate = `${base}-${++n}`;
+
+    if (!exists) {
+      return currentSlug;
+    }
+
+    currentSlug = `${slug}-${counter++}`;
   }
-  return `${base}-${Date.now().toString(36)}`;
 };
 
 const createOrganizationIntoDB = async (
   user: TJwtPayload,
   payload: TCreateOrganization,
 ) => {
-  const baseSlug = payload.slug || slugify(payload.name);
-  const slug = await ensureUniqueSlug(baseSlug);
+  const result = await prisma.$transaction(async (tx) => {
+    const baseSlug =
+      payload.slug?.trim() ? slugify(payload.slug) : slugify(payload.name);
 
-  const organization = await prisma.organization.create({
-    data: {
-      name: payload.name,
-      slug,
-      description: payload.description,
-      logoUrl: payload.logoUrl,
-      ownerId: user.id,
-    },
-    include: {
-      owner: { select: { id: true, name: true, email: true } },
-    },
+    const slug = await ensureUniqueSlug(baseSlug, tx);
+
+    const ownerEmail = payload.owner.email.trim().toLowerCase();
+
+    const existingUser = await tx.user.findUnique({
+      where: {
+        email: ownerEmail,
+      },
+    });
+
+    if (existingUser) {
+      throw new AppError(409, "Email already exists");
+    }
+
+    const hashedPassword = await bcrypt.hash(payload.owner.password, 10);
+
+    const owner = await tx.user.create({
+      data: {
+        name: payload.owner.name,
+        email: ownerEmail,
+        password: hashedPassword,
+        role: UserRole.USER,
+      },
+    });
+
+    const organization = await tx.organization.create({
+      data: {
+        name: payload.name,
+        slug,
+        description: payload.description,
+        logoUrl: payload.logoUrl,
+        plan: payload.plan ?? WorkspacePlan.FREE,
+        ownerId: owner.id,
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    await tx.organizationMember.create({
+      data: {
+        organizationId: organization.id,
+        userId: owner.id,
+        role: OrganizationRole.OWNER,
+      },
+    });
+
+    return organization;
   });
 
-  // await ActivityLogServices.createActivityLog({
-  //   action: "ORGANIZATION_CREATED",
-  //   entity: "ORGANIZATION",
-  //   entityId: organization.id,
-  //   userId: user.id,
-  //   details: { name: organization.name, slug: organization.slug },
-  // });
-
-  return organization;
+  return result;
 };
+
+
 
 // Orgs the user can see: ones they own, or ones containing a workspace
 // they're a member of.
@@ -128,18 +177,32 @@ const getOrganizationsFromDB = async (user: any) => {
   });
 };
 
-const getALlOrganizationsFromDB = async (user: any) => {
-  console.log("User role:", user.role);
-  if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
+const getAllOrganizationsFromDB = async (user: any) => {
+  if (user.role !== "SUPER_ADMIN") {
     throw new AppError(403, "You do not have access to this resource");
   }
 
   const organizations = await prisma.organization.findMany({
     include: {
-      owner: { select: { id: true, name: true, email: true } },
-      _count: { select: { workspaces: true } },
+      owner: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+
+      _count: {
+        select: {
+          workspaces: true,
+          members: true,
+        },
+      },
     },
-    orderBy: { createdAt: "desc" },
+
+    orderBy: {
+      createdAt: "desc",
+    },
   });
 
   return organizations;
@@ -192,10 +255,6 @@ const updateOrganizationIntoDB = async (
     throw new AppError(404, "Organization not found");
   }
 
-  if (existing.ownerId !== user.id && user.role !== "ADMIN") {
-    throw new AppError(403, "Only the organization owner can update it");
-  }
-
   // Keep slugs unique if it's changing.
   if (payload.slug && payload.slug !== existing.slug) {
     const clash = await prisma.organization.findUnique({
@@ -206,21 +265,32 @@ const updateOrganizationIntoDB = async (
       throw new AppError(409, "Slug is already taken");
     }
   }
+
+  console.log("payload received for update:", JSON.stringify(payload, null, 2));
+
+  // Separate owner from the rest of the organization data
+  const { owner, ...orgData } = payload;
+
+
+
   const organization = await prisma.organization.update({
     where: { id: organizationId },
-    data: payload,
+    data: {
+      ...orgData,
+      // Format correctly for Prisma relation update
+      ...(owner && {
+        owner: {
+          update: {
+            name: owner.name,
+            email: owner.email,
+          },
+        },
+      }),
+    },
     include: {
       owner: { select: { id: true, name: true, email: true } },
     },
   });
-
-  // await ActivityLogServices.createActivityLog({
-  //   action: "ORGANIZATION_UPDATED",
-  //   entity: "ORGANIZATION",
-  //   entityId: organization.id,
-  //   userId: user.id,
-  //   details: payload,
-  // });
 
   return organization;
 };
@@ -259,7 +329,7 @@ const deleteOrganizationIntoDB = async (
 export const OrganizationServices = {
   createOrganizationIntoDB,
   getOrganizationsFromDB,
-  getALlOrganizationsFromDB,
+  getAllOrganizationsFromDB,
   getSingleOrganizationFromDB,
   updateOrganizationIntoDB,
   deleteOrganizationIntoDB,

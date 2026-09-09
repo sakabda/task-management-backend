@@ -14,39 +14,39 @@ const router = Router();
 // Any authenticated user can create an org (they become its owner).
 router.post(
   "/",
-  auth("USER", "ADMIN", "SUPER_ADMIN"),
+  auth("SUPER_ADMIN"),
   validateRequest(createOrganizationValidationSchema),
   OrganizationControllers.createOrganization,
 );
 
 router.get(
   "/",
-  auth("USER", "ADMIN", "SUPER_ADMIN"),
+  auth("USER", "SUPER_ADMIN"),
   OrganizationControllers.getOrganizations,
 );
 
 router.get(
   "/all",
-  auth("ADMIN", "SUPER_ADMIN"),
-  OrganizationControllers.getALlOrganizations,
+  auth("SUPER_ADMIN"),
+  OrganizationControllers.getAllOrganizations,
 );
 
 router.get(
   "/:id",
-  auth("USER", "ADMIN", "SUPER_ADMIN"),
+  auth("USER", "SUPER_ADMIN"),
   OrganizationControllers.getSingleOrganization,
 );
 
 router.patch(
   "/:id",
-  auth("USER", "ADMIN", "SUPER_ADMIN"),
+  auth("SUPER_ADMIN"),
   validateRequest(updateOrganizationValidationSchema),
   OrganizationControllers.updateOrganization,
 );
 
 router.delete(
   "/:id",
-  auth("USER", "ADMIN", "SUPER_ADMIN"),
+  auth("USER", "SUPER_ADMIN"),
   OrganizationControllers.deleteOrganization,
 );
 

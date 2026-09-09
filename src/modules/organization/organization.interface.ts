@@ -1,20 +1,31 @@
+import { OrgStatus, WorkspacePlan } from "@prisma/client";
 import type { TRole } from "../../lib/permissions";
 
-export interface TCreateOrganization {
+type OrganizationStatus = OrgStatus;
+type OrganizationPlan = WorkspacePlan;
+
+interface BaseOrganization {
   name: string;
   slug?: string;
   description?: string;
-  status?: "ACTIVE" | "PENDING" | "SUSPENDED" | "DELETED";
+  status?: OrganizationStatus;
   logoUrl?: string;
+  plan?: OrganizationPlan;
 }
 
-export interface TUpdateOrganization {
-  name?: string;
-  slug?: string;
-  description?: string;
-  status?: "ACTIVE" | "PENDING" | "SUSPENDED" | "DELETED";
-  logoUrl?: string;
+export interface TCreateOrganization extends BaseOrganization {
+  owner: {
+    name: string;
+    email: string;
+    password: string;
+  };
 }
 
-// Re-exported for the validation file to avoid a second import path.
+export interface TUpdateOrganization extends Partial<BaseOrganization> {
+  owner?: {
+    name?: string;
+    email?: string;
+  };
+}
+
 export type { TRole };

@@ -30,9 +30,8 @@ const getOrganizations = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getALlOrganizations = catchAsync(async (req: Request, res: Response) => {
-  console.log("User role controller:", req.user?.role);
-  const result = await OrganizationServices.getALlOrganizationsFromDB(
+const getAllOrganizations = catchAsync(async (req: Request, res: Response) => {
+  const result = await OrganizationServices.getAllOrganizationsFromDB(
     req.user!,
   );
 
@@ -95,7 +94,7 @@ const deleteOrganization = catchAsync(async (req: Request, res: Response) => {
 export const OrganizationControllers = {
   createOrganization,
   getOrganizations,
-  getALlOrganizations,
+  getAllOrganizations,
   getSingleOrganization,
   updateOrganization,
   deleteOrganization,

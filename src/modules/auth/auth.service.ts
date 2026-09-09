@@ -45,7 +45,7 @@ const buildJwtPayload = async (
     email: user.email,
     role: user.role,
     activeWorkspaceId: workspaceId,
-    workspaceRole: membership?.role,
+    // workspaceRole: membership?.role || '',
   };
 };
 
@@ -81,7 +81,7 @@ const provisionDefaultTenant = async (userId: string, userName: string) => {
       data: {
         workspaceId: workspace.id,
         userId,
-        role: "ORG_ADMIN" as TRole,
+        // role: "ORG_ADMIN" as TRole,
       },
     });
 
@@ -245,17 +245,19 @@ const getMe = async (payload: TJwtPayload) => {
       },
       select: {
         role: true,
-        workspace: { select: { id: true, name: true, slug: true, organizationId: true } },
+        workspace: {
+          select: { id: true, name: true, slug: true, organizationId: true },
+        },
       },
     });
 
-    if (membership) {
-      activeWorkspace = {
-        ...membership.workspace,
-        role: membership.role,
-        permissions: getPermissions(membership.role),
-      };
-    }
+    // if (membership) {
+    //   activeWorkspace = {
+    //     ...membership.workspace,
+    //     role: membership.role,
+    //     permissions: getPermissions(membership.role),
+    //   };
+    // }
   }
 
   return { ...user, activeWorkspace };
